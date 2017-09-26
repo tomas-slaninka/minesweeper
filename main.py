@@ -56,8 +56,8 @@ def get_coordinates(iv_range_x, iv_range_y):
 
 
 # Check if selected cell contains a mine
-def contains_mine(is_coordinates: Coordinates, im_matrix):
-    if im_matrix[is_coordinates.mv_x][is_coordinates.mv_y] == '*':
+def contains_char(is_coordinates: Coordinates, im_matrix, iv_char):
+    if im_matrix[is_coordinates.mv_x][is_coordinates.mv_y] == iv_char:
         rv_res = 'X'
     else:
         rv_res = ''
@@ -65,8 +65,8 @@ def contains_mine(is_coordinates: Coordinates, im_matrix):
 
 
 # Place a single mine into the matrix
-def place_mine(is_coordinates: Coordinates, cm_matrix):
-    cm_matrix[is_coordinates.mv_x][is_coordinates.mv_y] = '*'
+def place_char(is_coordinates: Coordinates, cm_matrix, iv_char):
+    cm_matrix[is_coordinates.mv_x][is_coordinates.mv_y] = iv_char
 
 
 # Check if cell is not out of matrix space
@@ -104,15 +104,15 @@ def get_surrounding_cells(is_coordinates: Coordinates, iv_range_x, iv_range_y):
 
 # Count mines around cell
 def count_mines(is_coordinates: Coordinates, iv_range_x, iv_range_y, cm_matrix):
-    if 'X' == contains_mine(is_coordinates, cm_matrix):
+    if 'X' == contains_char(is_coordinates, cm_matrix, '*'):
         return
     else:
         nb_of_mines = 0
         surroundings = get_surrounding_cells(is_coordinates, iv_range_x, iv_range_y)
         for cell in surroundings:
-            if 'X' == contains_mine(cell, cm_matrix):
+            if 'X' == contains_char(cell, cm_matrix, '*'):
                 nb_of_mines += 1
-        cm_matrix[is_coordinates.mv_x][is_coordinates.mv_y] = nb_of_mines
+        cm_matrix[is_coordinates.mv_x][is_coordinates.mv_y] = str(nb_of_mines)
 
 
 # For all cells that are not mines, count mines that surround them
@@ -128,7 +128,7 @@ def check_mine_spot(iv_range_x, iv_range_y, im_matrix, is_coordinates: Coordinat
     valid = ''
     surroundings = get_surrounding_cells(is_coordinates, iv_range_x, iv_range_y)
     for cell in surroundings:
-        if '' == contains_mine(cell, im_matrix):
+        if '' == contains_char(cell, im_matrix, '*'):
             valid = 'X'
             break
         elif gv_debug == 'X':
@@ -146,7 +146,7 @@ def place_mines(iv_mines, iv_range_x, iv_range_y, cm_matrix):
             # coordinates = get_coordinates(iv_range_x, iv_range_y)
             coordinates = lv_coordProvider.get_random_coords()
             if 'X' == check_mine_spot(iv_range_x, iv_range_y, cm_matrix, coordinates):
-                place_mine(coordinates, cm_matrix)
+                place_char(coordinates, cm_matrix, '*')
                 break
 
     count_surroundings(iv_range_x, iv_range_y, cm_matrix)
@@ -161,8 +161,14 @@ def reveal_fields(im_matrix_hidden, im_matrix_gameboard, is_coordinates: Coordin
     ll_field.append(is_coordinates)
     for ls_field in ll_field:
         lv_revealed_field = get_field_value(im_matrix_hidden, ls_field)
+        # lv_revealed_field = str(lv_revealed_field)
+        place_char(ls_field, im_matrix_gameboard, lv_revealed_field)
         if lv_revealed_field == '0':
-            get_surrounding_cells(ls_field, iv_range_x, iv_range_y)
+            surroundings = get_surrounding_cells(ls_field, iv_range_x, iv_range_y)
+            for cell in surroundings:
+                if 'X' == contains_char(cell, im_matrix_gameboard, '?'):
+                    ll_field.append(cell)
+
 
 
 # Main function, that handles everything
@@ -174,16 +180,35 @@ def main():
 
     lm_matrix_hidden = init_matrix(lv_range_x, lv_range_y, 0)
     place_mines(lv_nb_of_mines, lv_range_x, lv_range_y, lm_matrix_hidden)
+    print_matrix(lm_matrix_hidden)
     lm_matrix_gameboard = init_matrix(lv_range_x, lv_range_y, '?')
-    print_matrix(lm_matrix_gameboard)
 
     while True:
+        print()
+        print()
+        print_matrix(lm_matrix_gameboard)
+        lv_option = input("R - Reveal spot, M - Place mine to spot, X - Exit")
+        if lv_option == 'X':
+            print("See you soon!")
+            break
+        elif lv_option != 'R' and lv_option != 'M':
+            continue
+
         lv_pos_x = int(input("Enter number of row to be revealed: "))
         lv_pos_y = int(input("Enter number of column to be revealed: "))
-        lv_coords = Coordinates(lv_pos_x, lv_pos_y)
-        reveal_fields(lm_matrix_hidden, lm_matrix_gameboard, lv_coords)
-        print_matrix(lm_matrix_gameboard)
-        if 'X' == contains_mine(lv_coords, lm_matrix_gameboard):
+        # Do the adjustment, so user doesnt have to index from 0
+        lv_coords = Coordinates(lv_pos_x - 1, lv_pos_y - 1)
+
+        # TODO: Check if selected field is not revealed field and check for index leakage
+        if 'X' != contains_char(lv_coords, lm_matrix_gameboard, '?'):
+            print("Already revealed / mine is placed here")
+
+        if lv_option == 'M':
+            place_char(lv_coords, lm_matrix_gameboard, '+')
+            continue
+
+        reveal_fields(lm_matrix_hidden, lm_matrix_gameboard, lv_coords, lv_range_x, lv_range_y)
+        if 'X' == contains_char(lv_coords, lm_matrix_gameboard, '*'):
             print("You have found a mine, you have lost")
             break
 
