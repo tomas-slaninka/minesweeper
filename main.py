@@ -170,6 +170,15 @@ def reveal_fields(im_matrix_hidden, im_matrix_gameboard, is_coordinates: Coordin
                     ll_field.append(cell)
 
 
+# Check if every cell has been revealed
+def is_winning_board(im_matrix):
+    for ls_row in im_matrix:
+        for lv_cell in ls_row:
+            if '?' == lv_cell:
+                return ''
+    # Just easy check - if every cell does not contain '?', it has to be right solution
+    return 'X'
+
 
 # Main function, that handles everything
 def main():
@@ -184,6 +193,9 @@ def main():
     lm_matrix_gameboard = init_matrix(lv_range_x, lv_range_y, '?')
 
     while True:
+        if 'X' == is_winning_board(lm_matrix_gameboard):
+            print('Congratulations, you win!')
+            break
         print()
         print()
         print_matrix(lm_matrix_gameboard)
@@ -192,14 +204,17 @@ def main():
             print("See you soon!")
             break
         elif lv_option != 'R' and lv_option != 'M':
+            print('Invalid option!')
             continue
 
         lv_pos_x = int(input("Enter number of row to be revealed: "))
         lv_pos_y = int(input("Enter number of column to be revealed: "))
         # Do the adjustment, so user doesnt have to index from 0
+        if lv_pos_x < 1 or lv_pos_x > lv_range_x or lv_pos_y < 1 or lv_pos_y > lv_range_y:
+            print('Invalid coordinates!')
+
         lv_coords = Coordinates(lv_pos_x - 1, lv_pos_y - 1)
 
-        # TODO: Check if selected field is not revealed field and check for index leakage
         if 'X' != contains_char(lv_coords, lm_matrix_gameboard, '?'):
             print("Already revealed / mine is placed here")
 
